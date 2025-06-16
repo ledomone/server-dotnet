@@ -1,9 +1,26 @@
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+using Microsoft.EntityFrameworkCore;
+using server_dotnet.Infrastructure.Data;
 
-app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
+public partial class Program {
+    private static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
 
-app.Run();
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            //   options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseInMemoryDatabase("TestDatabase"));
+
+        builder.Services.AddControllers();
+
+        var app = builder.Build();
+        
+        app.MapControllers();
+
+        app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
+
+        app.Run();
+    }
+}
 
 // Created for testing purposes
 public partial class Program { }

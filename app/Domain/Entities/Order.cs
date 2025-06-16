@@ -22,7 +22,6 @@ namespace server_dotnet.Domain.Entities
         public int OrganizationId { get; set; }
 
         [ForeignKey("OrganizationId")]
-
         public Organization Organization { get; set; } = null!;
     }
 }
