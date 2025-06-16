@@ -1,6 +1,6 @@
-﻿namespace server_dotnet.Domain.Entities
+﻿namespace server_dotnet.Controllers.DTO
 {
-    public class Organization
+    public class OrganizationDTO
     {
         public int Id { get; set; }
 

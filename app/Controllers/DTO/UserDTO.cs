@@ -1,6 +1,6 @@
-﻿namespace server_dotnet.Domain.Entities
+﻿namespace server_dotnet.Controllers.DTO
 {
-    public class User
+    public class UserDTO
     {
         public int Id { get; set; }
 
@@ -11,8 +11,6 @@
         public string Email { get; set; } = string.Empty;
 
         public int OrganizationId { get; set; }
-
-        public Organization Organization { get; set; } = null!;
 
         public DateTime DateCreated { get; set; }
     }

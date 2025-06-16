@@ -1,6 +1,6 @@
-﻿namespace server_dotnet.Domain.Entities
+﻿namespace server_dotnet.Controllers.DTO
 {
-    public class Order
+    public class OrderDTO
     {
         public int Id { get; set; }
 
@@ -10,10 +10,7 @@
 
         public int UserId { get; set; }
 
-        public User User { get; set; } = null!;
-
         public int OrganizationId { get; set; }
 
-        public Organization Organization { get; set; } = null!;
     }
 }
