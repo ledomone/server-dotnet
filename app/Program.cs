@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Data;
+using server_dotnet.Infrastructure.Repositories;
 
 public partial class Program
 {
@@ -13,6 +15,9 @@ public partial class Program
 
         builder.Services.AddControllers();
         builder.Services.AddOpenApi();
+        builder.Services.AddScoped<IRepository<Organization>, OrganizationRepository>();
+        builder.Services.AddScoped<IRepository<User>, UserRepository>();
+        builder.Services.AddScoped<IRepository<Order>, OrderRepository>();
 
         var app = builder.Build();
 

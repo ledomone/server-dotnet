@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Domain.Entities;
-using server_dotnet.Infrastructure.Data;
+using server_dotnet.Infrastructure.Repositories;
 
 namespace server_dotnet.Controllers
 {
@@ -10,36 +10,33 @@ namespace server_dotnet.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IRepository<Order> _orderRepository;
 
-        public OrdersController(ApplicationDbContext context)
+        public OrdersController(IRepository<Order> orderRepository)
         {
-            _context = context;
+            _orderRepository = orderRepository;
         }
 
         // GET: api/Orders
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderDTO>>> GetOrders()
         {
-            var orders = await _context.Orders.ToListAsync();
-            return orders.ToDTOs().ToList();
+            var orders = await _orderRepository.GetAllAsync();
+            return Ok(orders.ToDTOs().ToList());
         }
 
         // GET: api/Orders/5
         [HttpGet("{id}")]
         public async Task<ActionResult<FullOrderDTO>> GetOrder(int id)
         {
-            var order = await _context.Orders
-                .Include(o => o.User)
-                .Include(o => o.Organization)
-                .FirstOrDefaultAsync(o => o.Id == id);
+            var order = await _orderRepository.GetByIdAsync(id);
 
             if (order == null)
             {
                 return NotFound();
             }
 
-            return order.ToFullOrderDTO();
+            return Ok(order.ToFullOrderDTO());
         }
 
         // PUT: api/Orders/5
@@ -51,7 +48,7 @@ namespace server_dotnet.Controllers
                 return BadRequest();
             }
 
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
             {
                 return NotFound();
@@ -64,18 +61,15 @@ namespace server_dotnet.Controllers
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _orderRepository.UpdateAsync(order);
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!OrderExists(id))
+                if (!await _orderRepository.ExistsAsync(id))
                 {
                     return NotFound();
                 }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
             return NoContent();
@@ -92,8 +86,8 @@ namespace server_dotnet.Controllers
                 UserId = orderDTO.UserId,
                 OrganizationId = orderDTO.OrganizationId
             };
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
+            
+            await _orderRepository.AddAsync(order);
 
             return CreatedAtAction("GetOrder", new { id = order.Id }, order.ToDTO());
         }
@@ -102,21 +96,15 @@ namespace server_dotnet.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null)
+            
+            if (!await _orderRepository.ExistsAsync(id))
             {
                 return NotFound();
             }
 
-            _context.Orders.Remove(order);
-            await _context.SaveChangesAsync();
+            await _orderRepository.DeleteAsync(id);
 
             return NoContent();
-        }
-
-        private bool OrderExists(int id)
-        {
-            return _context.Orders.Any(e => e.Id == id);
         }
     }
 }

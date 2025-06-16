@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Domain.Entities;
-using server_dotnet.Infrastructure.Data;
+using server_dotnet.Infrastructure.Repositories;
 
 namespace server_dotnet.Controllers
 {
@@ -10,34 +10,34 @@ namespace server_dotnet.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IRepository<User> _userRepository;
 
-        public UsersController(ApplicationDbContext context)
+        public UsersController(IRepository<User> userRepository)
         {
-            _context = context;
+            _userRepository = userRepository;
         }
 
         // GET: api/Users
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDTO>>> GetUsers()
         {
-            var users = await _context.Users.ToListAsync();
+            var users = await _userRepository.GetAllAsync();
 
-            return users.ToDTOs().ToList(); 
+            return Ok(users.ToDTOs().ToList()); 
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
         public async Task<ActionResult<UserDTO>> GetUser(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
                 return NotFound();
             }
 
-            return user.ToDTO();
+            return Ok(user.ToDTO());
         }
 
         // PUT: api/Users/5
@@ -49,7 +49,7 @@ namespace server_dotnet.Controllers
                 return BadRequest();
             }
 
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
@@ -63,18 +63,15 @@ namespace server_dotnet.Controllers
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _userRepository.UpdateAsync(user);
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!UserExists(id))
+                if (!await _userRepository.ExistsAsync(id))
                 {
                     return NotFound();
                 }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
             return NoContent();
@@ -93,8 +90,7 @@ namespace server_dotnet.Controllers
                 DateCreated = userDTO.DateCreated
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            await _userRepository.AddAsync(user);
 
             return CreatedAtAction("GetUser", new { id = user.Id }, user.ToDTO());
         }
@@ -103,21 +99,13 @@ namespace server_dotnet.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
+            if (!await _userRepository.ExistsAsync(id))
             {
                 return NotFound();
             }
 
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
+            await _userRepository.DeleteAsync(id);
             return NoContent();
-        }
-
-        private bool UserExists(int id)
-        {
-            return _context.Users.Any(e => e.Id == id);
         }
     }
 }

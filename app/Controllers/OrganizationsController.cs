@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Domain.Entities;
-using server_dotnet.Infrastructure.Data;
+using server_dotnet.Infrastructure.Repositories;
 
 namespace server_dotnet.Controllers
 {
@@ -10,34 +10,34 @@ namespace server_dotnet.Controllers
     [ApiController]
     public class OrganizationsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IRepository<Organization> _organizationRepository;
 
-        public OrganizationsController(ApplicationDbContext context)
+        public OrganizationsController(IRepository<Organization> organizationRepository)
         {
-            _context = context;
+            _organizationRepository = organizationRepository;
         }
 
         // GET: api/Organizations
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrganizationDTO>>> GetOrganizations()
         {
-            var organizations =  await _context.Organizations.ToListAsync();
-            
-            return organizations.ToDTOs().ToList();
+            var organizations = await _organizationRepository.GetAllAsync();
+
+            return Ok(organizations.ToDTOs().ToList());
         }
 
         // GET: api/Organizations/5
         [HttpGet("{id}")]
         public async Task<ActionResult<OrganizationDTO>> GetOrganization(int id)
         {
-            var organization = await _context.Organizations.FindAsync(id);
+            var organization = await _organizationRepository.GetByIdAsync(id);
 
             if (organization == null)
             {
                 return NotFound();
             }
 
-            return organization.ToDTO();
+            return Ok(organization.ToDTO());
         }
 
         // PUT: api/Organizations/5
@@ -49,7 +49,7 @@ namespace server_dotnet.Controllers
                 return BadRequest();
             }
 
-            var organization = await _context.Organizations.FindAsync(id);
+            var organization = await _organizationRepository.GetByIdAsync(id);
             if (organization == null)
             {
                 return NotFound();
@@ -61,18 +61,15 @@ namespace server_dotnet.Controllers
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _organizationRepository.UpdateAsync(organization);
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!OrganizationExists(id))
+                if (!await _organizationRepository.ExistsAsync(id))
                 {
                     return NotFound();
                 }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
             return NoContent();
@@ -89,8 +86,7 @@ namespace server_dotnet.Controllers
                 DateFounded = organizationDTO.DateFounded
             };
 
-            _context.Organizations.Add(organization);
-            await _context.SaveChangesAsync();
+            await _organizationRepository.AddAsync(organization);
 
             return CreatedAtAction("GetOrganization", new { id = organization.Id }, organization.ToDTO());
         }
@@ -99,21 +95,14 @@ namespace server_dotnet.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrganization(int id)
         {
-            var organization = await _context.Organizations.FindAsync(id);
-            if (organization == null)
+            
+            if (!await _organizationRepository.ExistsAsync(id))
             {
                 return NotFound();
             }
 
-            _context.Organizations.Remove(organization);
-            await _context.SaveChangesAsync();
-
+            await _organizationRepository.DeleteAsync(id);
             return NoContent();
-        }
-
-        private bool OrganizationExists(int id)
-        {
-            return _context.Organizations.Any(e => e.Id == id);
         }
     }
 }
