@@ -24,7 +24,8 @@ namespace server_dotnet.Services
                 FirstName = userDTO.FirstName,
                 LastName = userDTO.LastName,
                 Email = userDTO.Email,
-                OrganizationId = userDTO.OrganizationId
+                OrganizationId = userDTO.OrganizationId,
+                DateCreated = userDTO.DateCreated
             };
 
             try
