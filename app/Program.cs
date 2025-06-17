@@ -51,6 +51,7 @@ public partial class Program
 
         app.MapControllers();
 
+        app.UseMiddleware<ErrorHandlingMiddleware>();
         app.UseMiddleware<HttpHeadersLoggingMiddleware>();
 
         app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
