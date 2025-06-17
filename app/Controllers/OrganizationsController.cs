@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Services;
 
@@ -47,6 +48,10 @@ namespace server_dotnet.Controllers
                 await _organizationService.UpdateAsync(id, organizationDTO);
                 return NoContent();
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.Errors);
+            }
             catch (ArgumentException)
             {
                 return BadRequest("Organization ID mismatch.");
@@ -61,9 +66,15 @@ namespace server_dotnet.Controllers
         [HttpPost]
         public async Task<ActionResult<OrganizationDTO>> PostOrganization(OrganizationDTO organizationDTO)
         {
-            var createdOrganization =  await _organizationService.CreateAsync(organizationDTO);
-
-            return CreatedAtAction(nameof(GetOrganization), new { id = createdOrganization.Id }, createdOrganization);
+            try
+            {
+                var createdOrganization = await _organizationService.CreateAsync(organizationDTO);
+                return CreatedAtAction(nameof(GetOrganization), new { id = createdOrganization.Id }, createdOrganization);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.Errors);
+            }
         }
 
         // DELETE: api/Organizations/5

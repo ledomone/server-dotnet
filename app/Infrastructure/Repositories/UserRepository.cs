@@ -14,9 +14,20 @@ namespace server_dotnet.Infrastructure.Repositories
         }
         public async Task<int> AddAsync(User entity)
         {
+            await CheckIfOrganizationExists(entity);
+
             _context.Users.Add(entity);
             await _context.SaveChangesAsync();
             return entity.Id;
+        }
+
+        private async Task CheckIfOrganizationExists(User entity)
+        {
+            var organizationExists = await _context.Organizations.AnyAsync(o => o.Id == entity.OrganizationId);
+            if (!organizationExists)
+            {
+                throw new InvalidOperationException($"Organization with ID {entity.OrganizationId} does not exist.");
+            }
         }
 
         public async Task DeleteAsync(int id)
@@ -46,6 +57,8 @@ namespace server_dotnet.Infrastructure.Repositories
 
         public async Task UpdateAsync(User entity)
         {
+            await CheckIfOrganizationExists(entity);
+
             _context.Users.Update(entity);
             await _context.SaveChangesAsync();
         }

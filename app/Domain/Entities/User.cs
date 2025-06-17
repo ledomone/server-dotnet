@@ -1,4 +1,6 @@
-﻿namespace server_dotnet.Domain.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace server_dotnet.Domain.Entities
 {
     public class User
     {
@@ -10,6 +12,7 @@
 
         public string Email { get; set; } = string.Empty;
 
+        [Required]
         public int OrganizationId { get; set; }
 
         public Organization Organization { get; set; } = null!;

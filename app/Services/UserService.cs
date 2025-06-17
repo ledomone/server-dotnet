@@ -1,4 +1,5 @@
-﻿using server_dotnet.Controllers.DTO;
+﻿using FluentValidation;
+using server_dotnet.Controllers.DTO;
 using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Repositories;
 
@@ -7,13 +8,17 @@ namespace server_dotnet.Services
     public class UserService : IUserService
     {
         private readonly IRepository<User> _userRepository;
+        private readonly IValidator<UserDTO> _userValidator;
 
-        public UserService(IRepository<User> userRepository)
+        public UserService(IRepository<User> userRepository, IValidator<UserDTO> userValidator)
         {
             _userRepository = userRepository;
+            _userValidator = userValidator;
         }
         public async Task<UserDTO> CreateAsync(UserDTO userDTO)
         {
+            await Validate(userDTO);
+
             var user = new User
             {
                 FirstName = userDTO.FirstName,
@@ -22,9 +27,25 @@ namespace server_dotnet.Services
                 OrganizationId = userDTO.OrganizationId
             };
 
-            var id = await _userRepository.AddAsync(user);
-            user.Id = id;
-            return user.ToDTO();
+            try
+            {
+                var id = await _userRepository.AddAsync(user);
+                user.Id = id;
+                return user.ToDTO();
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"Failed to create user: {ex.Message}");
+            }
+        }
+
+        private async Task Validate(UserDTO userDTO)
+        {
+            var validationResult = await _userValidator.ValidateAsync(userDTO);
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors);
+            }
         }
 
         public async Task DeleteAsync(int id)
@@ -34,7 +55,7 @@ namespace server_dotnet.Services
                 throw new KeyNotFoundException($"User with ID {id} not found.");
             }
 
-            await _userRepository.DeleteAsync(id);  
+            await _userRepository.DeleteAsync(id);
         }
 
         public async Task<IEnumerable<UserDTO>> GetAllAsync()
@@ -51,6 +72,8 @@ namespace server_dotnet.Services
 
         public async Task UpdateAsync(int id, UserDTO userDTO)
         {
+            await Validate(userDTO);
+
             if (id != userDTO.Id)
             {
                 throw new ArgumentException("User ID mismatch.");
@@ -68,7 +91,14 @@ namespace server_dotnet.Services
             user.OrganizationId = userDTO.OrganizationId;
             user.DateCreated = userDTO.DateCreated;
 
-            await _userRepository.UpdateAsync(user);
+            try
+            {
+                await _userRepository.UpdateAsync(user);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"Failed to update user: {ex.Message}");
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Services;
 
@@ -46,6 +47,14 @@ namespace server_dotnet.Controllers
                 await _orderService.UpdateAsync(id, orderDTO);
                 return NoContent();
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.Errors);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (ArgumentException)
             {
                 return BadRequest("Order ID mismatch.");
@@ -60,9 +69,20 @@ namespace server_dotnet.Controllers
         [HttpPost]
         public async Task<ActionResult<OrderDTO>> PostOrder(OrderDTO orderDTO)
         {
-            var createdOrder = await _orderService.CreateAsync(orderDTO);
+            try
+            {
+                var createdOrder = await _orderService.CreateAsync(orderDTO);
 
-            return CreatedAtAction(nameof(GetOrder), new { id = createdOrder.Id }, createdOrder);
+                return CreatedAtAction(nameof(GetOrder), new { id = createdOrder.Id }, createdOrder);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.Errors);
+            }
         }
 
         // DELETE: api/Orders/5

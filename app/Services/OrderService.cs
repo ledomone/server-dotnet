@@ -1,4 +1,5 @@
-﻿using server_dotnet.Controllers.DTO;
+﻿using FluentValidation;
+using server_dotnet.Controllers.DTO;
 using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Repositories;
 
@@ -7,13 +8,17 @@ namespace server_dotnet.Services
     public class OrderService : IOrderService
     {
         private readonly IRepository<Order> _orderRepository;
+        private readonly IValidator<OrderDTO> _orderValidator;
 
-        public OrderService(IRepository<Order> orderRepository)
+        public OrderService(IRepository<Order> orderRepository, IValidator<OrderDTO> orderValidator)
         {
             _orderRepository = orderRepository;
+            _orderValidator = orderValidator;
         }
         public async Task<OrderDTO> CreateAsync(OrderDTO orderDTO)
         {
+            await Validate(orderDTO);
+
             var order = new Order
             {
                 OrderDate = orderDTO.OrderDate,
@@ -22,9 +27,16 @@ namespace server_dotnet.Services
                 OrganizationId = orderDTO.OrganizationId
             };
 
-            var id = await _orderRepository.AddAsync(order);
-            order.Id = id;
-            return order.ToDTO();
+            try
+            {
+                var id = await _orderRepository.AddAsync(order);
+                order.Id = id;
+                return order.ToDTO();
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"Failed to create order: {ex.Message}");
+            }
         }
 
         public async Task DeleteAsync(int id)
@@ -51,6 +63,8 @@ namespace server_dotnet.Services
 
         public async Task UpdateAsync(int id, OrderDTO orderDTO)
         {
+            await Validate(orderDTO);
+
             if (id != orderDTO.Id)
             {
                 throw new ArgumentException("Order ID mismatch.");
@@ -67,7 +81,23 @@ namespace server_dotnet.Services
             order.UserId = orderDTO.UserId;
             order.OrganizationId = orderDTO.OrganizationId;
 
-            await _orderRepository.UpdateAsync(order);
+            try
+            {
+                await _orderRepository.UpdateAsync(order);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"Failed to update order: {ex.Message}");
+            }
+        }
+
+        private async Task Validate(OrderDTO orderDTO)
+        {
+            var validationResult = await _orderValidator.ValidateAsync(orderDTO);
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors);
+            }
         }
     }
 }

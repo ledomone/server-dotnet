@@ -1,4 +1,5 @@
-﻿using server_dotnet.Controllers.DTO;
+﻿using FluentValidation;
+using server_dotnet.Controllers.DTO;
 using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Repositories;
 
@@ -7,13 +8,17 @@ namespace server_dotnet.Services
     public class OrganizationService : IOrganizationService
     {
         private readonly IRepository<Organization> _organizationRepository;
+        private readonly IValidator<OrganizationDTO> _organizationValidator;
 
-        public OrganizationService(IRepository<Organization> organizationRepository)
+        public OrganizationService(IRepository<Organization> organizationRepository, IValidator<OrganizationDTO> organizationValidator)
         {
             _organizationRepository = organizationRepository;
+            _organizationValidator = organizationValidator;
         }
         public async Task<OrganizationDTO> CreateAsync(OrganizationDTO organizationDTO)
         {
+            await Validate(organizationDTO);
+
             var organization = new Organization
             {
                 Name = organizationDTO.Name,
@@ -50,6 +55,8 @@ namespace server_dotnet.Services
 
         public async Task UpdateAsync(int id, OrganizationDTO organizationDTO)
         {
+            await Validate(organizationDTO);
+
             if (id != organizationDTO.Id)
             {
                 throw new ArgumentException("Organization ID mismatch.");
@@ -66,6 +73,15 @@ namespace server_dotnet.Services
             organization.DateFounded = organizationDTO.DateFounded;
 
             await _organizationRepository.UpdateAsync(organization);
+        }
+
+        private async Task Validate(OrganizationDTO organizationDTO)
+        {
+            var validationResult = await _organizationValidator.ValidateAsync(organizationDTO);
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors);
+            }
         }
     }
 }

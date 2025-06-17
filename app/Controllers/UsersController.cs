@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Services;
 
@@ -47,6 +48,14 @@ namespace server_dotnet.Controllers
                 await _userService.UpdateAsync(id, userDTO);
                 return NoContent();
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.Errors);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (ArgumentException)
             {
                 return BadRequest("User ID mismatch.");
@@ -61,10 +70,21 @@ namespace server_dotnet.Controllers
         [HttpPost]
         public async Task<ActionResult<UserDTO>> PostUser(UserDTO userDTO)
         {
-            var createdUser = await _userService.CreateAsync(userDTO);
+            try
+            {
+                var createdUser = await _userService.CreateAsync(userDTO);
 
-            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, createdUser);
-        }
+                return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, createdUser);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.Errors);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }           
 
         // DELETE: api/Users/5
         [HttpDelete("{id}")]

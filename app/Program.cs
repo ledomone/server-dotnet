@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using server_dotnet.Controllers.Validators;
 using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Data;
 using server_dotnet.Infrastructure.Repositories;
 using server_dotnet.Services;
+using FluentValidation;
+
 
 public partial class Program
 {
@@ -16,12 +19,18 @@ public partial class Program
 
         builder.Services.AddControllers();
         builder.Services.AddOpenApi();
+
         builder.Services.AddScoped<IRepository<Organization>, OrganizationRepository>();
         builder.Services.AddScoped<IRepository<User>, UserRepository>();
         builder.Services.AddScoped<IRepository<Order>, OrderRepository>();
+
         builder.Services.AddScoped<IOrganizationService, OrganizationService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IOrderService, OrderService>();
+
+        builder.Services.AddValidatorsFromAssemblyContaining<OrganizationDTOValidator>();
+        builder.Services.AddValidatorsFromAssemblyContaining<UserDTOValidator>();
+        builder.Services.AddValidatorsFromAssemblyContaining<OrderDTOValidator>();
 
         var app = builder.Build();
 
