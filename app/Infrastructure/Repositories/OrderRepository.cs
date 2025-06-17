@@ -11,10 +11,11 @@ namespace server_dotnet.Infrastructure.Repositories
         {
             _context = context;
         }
-        public async Task AddAsync(Order entity)
+        public async Task<int> AddAsync(Order entity)
         {
             _context.Orders.Add(entity);
             await _context.SaveChangesAsync();
+            return entity.Id;
         }
         public async Task DeleteAsync(int id)
         {

@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using server_dotnet.Controllers.DTO;
-using server_dotnet.Domain.Entities;
-using server_dotnet.Infrastructure.Repositories;
+using server_dotnet.Services;
 
 namespace server_dotnet.Controllers
 {
@@ -10,99 +8,76 @@ namespace server_dotnet.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
-        private readonly IRepository<Order> _orderRepository;
+        private readonly IOrderService _orderService;
 
-        public OrdersController(IRepository<Order> orderRepository)
+        public OrdersController(IOrderService orderService)
         {
-            _orderRepository = orderRepository;
+            _orderService = orderService;
         }
 
         // GET: api/Orders
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderDTO>>> GetOrders()
         {
-            var orders = await _orderRepository.GetAllAsync();
-            return Ok(orders.ToDTOs().ToList());
+            var orders = await _orderService.GetAllAsync();
+            return Ok(orders);
         }
 
         // GET: api/Orders/5
         [HttpGet("{id}")]
         public async Task<ActionResult<FullOrderDTO>> GetOrder(int id)
         {
-            var order = await _orderRepository.GetByIdAsync(id);
+            var order = await _orderService.GetByIdAsync(id);
 
             if (order == null)
             {
                 return NotFound();
             }
 
-            return Ok(order.ToFullOrderDTO());
+            return Ok(order);
         }
 
         // PUT: api/Orders/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutOrder(int id, OrderDTO orderDTO)
         {
-            if (id != orderDTO.Id)
+            try
             {
-                return BadRequest();
+                await _orderService.UpdateAsync(id, orderDTO);
+                return NoContent();
             }
-
-            var order = await _orderRepository.GetByIdAsync(id);
-            if (order == null)
+            catch (ArgumentException)
+            {
+                return BadRequest("Order ID mismatch.");
+            }
+            catch (KeyNotFoundException)
             {
                 return NotFound();
             }
-
-            order.OrderDate = orderDTO.OrderDate;
-            order.TotalAmount = orderDTO.TotalAmount;
-            order.UserId = orderDTO.UserId;
-            order.OrganizationId = orderDTO.OrganizationId;
-
-            try
-            {
-                await _orderRepository.UpdateAsync(order);
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await _orderRepository.ExistsAsync(id))
-                {
-                    return NotFound();
-                }
-                throw;
-            }
-
-            return NoContent();
         }
 
         // POST: api/Orders
         [HttpPost]
         public async Task<ActionResult<OrderDTO>> PostOrder(OrderDTO orderDTO)
         {
-            var order = new Order
-            {
-                OrderDate = orderDTO.OrderDate,
-                TotalAmount = orderDTO.TotalAmount,
-                UserId = orderDTO.UserId,
-                OrganizationId = orderDTO.OrganizationId
-            };
-            
-            await _orderRepository.AddAsync(order);
+            var createdOrder = await _orderService.CreateAsync(orderDTO);
 
-            return CreatedAtAction("GetOrder", new { id = order.Id }, order.ToDTO());
+            return CreatedAtAction(nameof(GetOrder), new { id = createdOrder.Id }, createdOrder);
         }
 
         // DELETE: api/Orders/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            
-            if (!await _orderRepository.ExistsAsync(id))
+
+            try
+            {
+                await _orderService.DeleteAsync(id);
+            }
+            catch (KeyNotFoundException)
             {
                 return NotFound();
             }
-
-            await _orderRepository.DeleteAsync(id);
 
             return NoContent();
         }
