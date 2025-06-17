@@ -7,17 +7,22 @@ namespace server_dotnet.Infrastructure.Repositories
     public class UserRepository : IRepository<User>
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<IRepository<User>> _logger;
 
-        public UserRepository(ApplicationDbContext context)
+        public UserRepository(ApplicationDbContext context,
+            ILogger<IRepository<User>> logger)
         {
             _context = context;
+            _logger = logger;
         }
         public async Task<int> AddAsync(User entity)
         {
+            _logger.LogInformation("Adding user: {UserName}", entity.FirstName + " " + entity.LastName);
             await CheckIfOrganizationExists(entity);
 
             _context.Users.Add(entity);
             await _context.SaveChangesAsync();
+            _logger.LogInformation("User added with ID: {UserId}", entity.Id);
             return entity.Id;
         }
 
@@ -26,17 +31,20 @@ namespace server_dotnet.Infrastructure.Repositories
             var organizationExists = await _context.Organizations.AnyAsync(o => o.Id == entity.OrganizationId);
             if (!organizationExists)
             {
+                _logger.LogError("Organization with ID {OrganizationId} does not exist for user {UserName}", entity.OrganizationId, entity.FirstName + " " + entity.LastName);
                 throw new InvalidOperationException($"Organization with ID {entity.OrganizationId} does not exist.");
             }
         }
 
         public async Task DeleteAsync(int id)
         {
+            _logger.LogInformation("Deleting user with ID: {UserId}", id);
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("User {UserName} deleted successfully", user.FirstName + " " + user.LastName);
             }
         }
 
@@ -57,10 +65,12 @@ namespace server_dotnet.Infrastructure.Repositories
 
         public async Task UpdateAsync(User entity)
         {
+            _logger.LogInformation("Updating user with ID: {UserId}", entity.Id);
             await CheckIfOrganizationExists(entity);
 
             _context.Users.Update(entity);
             await _context.SaveChangesAsync();
+            _logger.LogInformation("User {UserName} updated successfully", entity.FirstName + " " + entity.LastName);
         }
     }
 }

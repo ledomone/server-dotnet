@@ -5,6 +5,8 @@ using server_dotnet.Infrastructure.Data;
 using server_dotnet.Infrastructure.Repositories;
 using server_dotnet.Services;
 using FluentValidation;
+using Serilog;
+using server_dotnet.Middleware;
 
 
 public partial class Program
@@ -32,6 +34,13 @@ public partial class Program
         builder.Services.AddValidatorsFromAssemblyContaining<UserDTOValidator>();
         builder.Services.AddValidatorsFromAssemblyContaining<OrderDTOValidator>();
 
+        builder.Host.UseSerilog((context, services, configuration) =>
+        {
+            configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services);
+        });
+
         var app = builder.Build();
 
         app.MapOpenApi();
@@ -41,6 +50,8 @@ public partial class Program
         });
 
         app.MapControllers();
+
+        app.UseMiddleware<HttpHeadersLoggingMiddleware>();
 
         app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
 
