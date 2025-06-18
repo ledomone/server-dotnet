@@ -27,13 +27,13 @@ namespace server_dotnet.Infrastructure.Data
                 .HasForeignKey(u => u.OrganizationId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.User)
                 .WithMany()
                 .HasForeignKey(o => o.UserId)
                 .IsRequired()
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Organization)
@@ -41,6 +41,10 @@ namespace server_dotnet.Infrastructure.Data
                 .HasForeignKey(o => o.OrganizationId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Order>()
+                .Property(o => o.TotalAmount)
+                .HasPrecision(18, 2);
         }
     }
 }

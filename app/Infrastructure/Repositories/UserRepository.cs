@@ -42,6 +42,13 @@ namespace server_dotnet.Infrastructure.Repositories
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
+                var userOrders  = await _context.Orders.Where(o => o.UserId == id).ToListAsync();
+                if (userOrders.Any())
+                {
+                    _logger.LogInformation("Deleting orders associated with user {UserName}", user.FirstName + " " + user.LastName);
+                    _context.Orders.RemoveRange(userOrders);
+                }
+
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("User {UserName} deleted successfully", user.FirstName + " " + user.LastName);
