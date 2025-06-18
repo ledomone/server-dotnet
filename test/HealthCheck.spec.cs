@@ -19,7 +19,7 @@ namespace server_dotnet.tests {
 
             var payload = await response.Content.ReadFromJsonAsync<HealthDto>();
             payload.Should().NotBeNull();
-            payload!.Status.Should().Be("UP");
+            payload!.Status.Should().Be("Healthy");
         }
 
         private class HealthDto

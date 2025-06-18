@@ -1,12 +1,13 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using server_dotnet.Controllers.Validators;
 using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Data;
 using server_dotnet.Infrastructure.Repositories;
-using server_dotnet.Services;
-using FluentValidation;
-using Serilog;
 using server_dotnet.Middleware;
+using server_dotnet.Services;
 
 
 public partial class Program
@@ -40,6 +41,12 @@ public partial class Program
                 .ReadFrom.Services(services);
         });
 
+        builder.Services.AddHealthChecks()
+            .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "Database");
+
+        builder.Services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>(name: "DB Context");
+
         var app = builder.Build();
 
         app.MapOpenApi();
@@ -53,9 +60,52 @@ public partial class Program
         app.UseMiddleware<ErrorHandlingMiddleware>();
         app.UseMiddleware<HttpHeadersLoggingMiddleware>();
 
-        app.MapGet("/health", () => Results.Ok(new { status = "UP" }));
+        MapHealthCheckEndpoints(app);
 
         app.Run();
+    }
+
+    private static void MapHealthCheckEndpoints(WebApplication app)
+    {
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            Predicate = _ => true,
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(
+                    System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        status = report.Status.ToString(),
+                        checks = report.Entries.Select(e => new
+                        {
+                            name = e.Key,
+                            status = e.Value.Status.ToString(),
+                            description = e.Value.Description
+                        })
+                    }));
+            }
+        });
+
+        app.MapHealthChecks("/readiness", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("readiness"),
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(
+                    System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        status = report.Status.ToString(),
+                        checks = report.Entries.Select(e => new
+                        {
+                            name = e.Key,
+                            status = e.Value.Status.ToString(),
+                            description = e.Value.Description
+                        })
+                    }));
+            }
+        });
     }
 }
 
