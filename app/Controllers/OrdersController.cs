@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Services;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace server_dotnet.Controllers
 {
@@ -35,6 +37,13 @@ namespace server_dotnet.Controllers
                 return NotFound();
             }
 
+            var eTag = GenerateETag(order);
+            if (Request.Headers.TryGetValue("If-None-Match", out var ifNoneMatch) && ifNoneMatch == eTag)
+            {
+                return StatusCode(304); // Not Modified
+            }
+
+            Response.Headers["ETag"] = eTag;
             return Ok(order);
         }
 
@@ -100,6 +109,17 @@ namespace server_dotnet.Controllers
             }
 
             return NoContent();
+        }
+
+        private string GenerateETag(object data)
+        {
+            string json = System.Text.Json.JsonSerializer.Serialize(data);
+
+            using (var md5 = MD5.Create())
+            {
+                byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(json));
+                return Convert.ToBase64String(hash);
+            }
         }
     }
 }

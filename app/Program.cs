@@ -20,6 +20,7 @@ public partial class Program
                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         builder.Services.AddControllers();
+        builder.Services.AddResponseCaching();
         builder.Services.AddOpenApi();
 
         builder.Services.AddScoped<IRepository<Organization>, OrganizationRepository>();
@@ -49,6 +50,7 @@ public partial class Program
 
         var app = builder.Build();
 
+        app.UseResponseCaching();
         app.MapOpenApi();
         app.UseSwaggerUi(options =>
         {

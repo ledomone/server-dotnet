@@ -27,6 +27,7 @@ namespace server_dotnet.Controllers
 
         // GET: api/Users/5
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 600, Location = ResponseCacheLocation. Any)]
         public async Task<ActionResult<UserDTO>> GetUser(int id)
         {
             var user = await _userService.GetByIdAsync(id);

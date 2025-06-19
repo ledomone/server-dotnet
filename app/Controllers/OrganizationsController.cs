@@ -27,6 +27,7 @@ namespace server_dotnet.Controllers
 
         // GET: api/Organizations/5
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any)]
         public async Task<ActionResult<OrganizationDTO>> GetOrganization(int id)
         {
             var organization = await _organizationService.GetByIdAsync(id);
