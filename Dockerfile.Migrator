@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["server-dotnet.sln", "."]
+COPY ["server-dotnet.migrator/server-dotnet.migrator.csproj", "server-dotnet.migrator/"]
+COPY ["app/server-dotnet.csproj", "app/"]
+RUN dotnet restore "server-dotnet.migrator/server-dotnet.migrator.csproj"
+COPY ["server-dotnet.migrator/", "server-dotnet.migrator/"]
+COPY ["app/", "app/"]
+WORKDIR /src/server-dotnet.migrator
+RUN dotnet build "server-dotnet.migrator.csproj" -c Release -o /app/build
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+COPY --from=build /app/build .
+ENTRYPOINT ["dotnet", "server-dotnet.migrator.dll"]
