@@ -14,6 +14,8 @@ public partial class Program
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+        builder.Services.AddRateLimiters();
+
         builder.Services.AddControllers();
         builder.Services.AddResponseCaching();
         builder.Services.AddOpenApi();
@@ -33,6 +35,7 @@ public partial class Program
 
         var app = builder.Build();
 
+        app.UseRateLimiter();
         app.UseResponseCaching();
         app.MapOpenApi();
         app.UseSwaggerUi(options =>

@@ -4,6 +4,7 @@ using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Data;
 using server_dotnet.Infrastructure.Repositories;
 using server_dotnet.Services;
+using System.Threading.RateLimiting;
 
 namespace server_dotnet.Extensions
 {
@@ -42,6 +43,37 @@ namespace server_dotnet.Extensions
             .AddSqlServer(connectionString, name: "Database");
             services.AddHealthChecks()
                 .AddDbContextCheck<ApplicationDbContext>(name: "DB Context");
+
+            return services;
+        }
+
+        public static IServiceCollection AddRateLimiters(this IServiceCollection services)
+        {
+            services.AddRateLimiter(options =>
+            {
+                options.AddPolicy("OrganizationGetLimit", context =>
+                {
+                    var organizationId = context.Request.RouteValues["id"]?.ToString() ?? "anonymous";
+
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: organizationId,
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 30,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        });
+                });
+
+                options.OnRejected = async (context, cancellationToken) =>
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    await context.HttpContext.Response.WriteAsync(
+                        "Too many requests for this organization. Try again later.", cancellationToken);
+                };
+            });
 
             return services;
         }

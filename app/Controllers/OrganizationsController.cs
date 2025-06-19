@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using server_dotnet.Controllers.DTO;
 using server_dotnet.Services;
 
@@ -27,6 +28,7 @@ namespace server_dotnet.Controllers
 
         // GET: api/Organizations/5
         [HttpGet("{id}")]
+        [EnableRateLimiting("OrganizationGetLimit")]
         [ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any)]
         public async Task<ActionResult<OrganizationDTO>> GetOrganization(int id)
         {
