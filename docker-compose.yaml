@@ -28,11 +28,16 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8080:80"
+      - "8081:443"
     depends_on:
       - migrator
     environment:
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=OrderManagement;User Id=sa;Password=Strong@Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true
+      - Jwt__Key=${Jwt__Key}
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/certificate.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=YourPassword123
     networks:
       - app-network
 

@@ -16,9 +16,14 @@ public partial class Program
 
         builder.Services.AddRateLimiters();
 
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(options =>
+        {
+            // Global authorization filter
+            options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter());
+        });
         builder.Services.AddResponseCaching();
-        builder.Services.AddOpenApi();
+
+        builder.Services.AddSwagger();
 
         builder.Services.AddRepositories();
         builder.Services.AddAppServices();
@@ -32,17 +37,19 @@ public partial class Program
         });
 
         builder.Services.AddDbHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
+        builder.Services.AddAuthenticationAndAuthorization(builder.Configuration);
 
         var app = builder.Build();
 
         app.UseRateLimiter();
         app.UseResponseCaching();
-        app.MapOpenApi();
-        app.UseSwaggerUi(options =>
-        {
-            options.DocumentPath = "/openapi/v1.json";
-        });
+        
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
+        app.UseHttpsRedirection();
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.MapControllers();
 
         app.UseMiddleware<ErrorHandlingMiddleware>();

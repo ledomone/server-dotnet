@@ -1,9 +1,13 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using server_dotnet.Controllers.Validators;
 using server_dotnet.Domain.Entities;
 using server_dotnet.Infrastructure.Data;
 using server_dotnet.Infrastructure.Repositories;
 using server_dotnet.Services;
+using System.Text;
 using System.Threading.RateLimiting;
 
 namespace server_dotnet.Extensions
@@ -75,6 +79,66 @@ namespace server_dotnet.Extensions
                 };
             });
 
+            return services;
+        }
+
+        public static IServiceCollection AddAuthenticationAndAuthorization(this IServiceCollection services, IConfiguration configuration)
+        {
+            var jwtSettings = configuration.GetSection("Jwt");
+            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(key)
+                };
+            });
+
+            services.AddAuthorization();
+
+            return services;
+        }
+
+        public static IServiceCollection AddSwagger(this IServiceCollection services)
+        {
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen(options =>
+            {
+                options.AddSecurityDefinition("bearerAuth", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "JWT Authorization header using the Bearer scheme."
+                });
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "bearerAuth"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
+            });
             return services;
         }
     }

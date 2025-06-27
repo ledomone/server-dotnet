@@ -2,8 +2,8 @@
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
+EXPOSE 80
+EXPOSE 443
 
 
 # This stage is used to build the service project
@@ -25,4 +25,7 @@ RUN dotnet publish "./server-dotnet.csproj" -c $BUILD_CONFIGURATION -o /app/publ
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+COPY certificate.pfx /https/certificate.pfx
+ENV ASPNETCORE_Kestrel__Certificates__Default__Path=/https/certificate.pfx
+ENV ASPNETCORE_Kestrel__Certificates__Default__Password=YourPassword123
 ENTRYPOINT ["dotnet", "server-dotnet.dll"]

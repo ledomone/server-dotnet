@@ -43,3 +43,25 @@ This is a brief exercise to demonstrate and display proficiency in ASP.NET. The 
 3. Oraganization's access to the API should be rate limited to 30 requests per minute.
 4. The service should implement basic OAuth/JWT authentication; all routes should be authorized.
 5. The database should be secured. The application should discover secrets via configuration.
+
+
+---
+
+## JWT configuration
+1. Generate random JWT key:
+   ```bash
+   openssl rand -base64 32
+
+2. Set environment variable JWT_KEY:
+   ```bash
+   export Jwt__Key="YourSecretKeyFromEnvironmentVariable"
+
+   ```powershell
+   $env:Jwt__Key="YourSecretKeyFromEnvironmentVariable"
+
+3. Generate (for development) certificate:
+   ```bash
+   dotnet dev-certs https --export-path certificate.pfx --password YourPassword123
+
+   For production use real SSL certificate! ;-)
+
